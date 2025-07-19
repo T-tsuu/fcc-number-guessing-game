@@ -13,10 +13,16 @@ if [[ -z $USER_INFO ]]
 then
   echo "Welcome, $NAME! It looks like this is your first time here."
   INSERT_NEW_USER=$($PSQL "INSERT INTO users(username, games_played) VALUES('$NAME', 0)")
+  USER_INFO=$($PSQL "SELECT user_id, username, games_played FROM users WHERE username='$NAME'")
+  IFS='|' read USERID USERNAME GAMESPLAYED <<< "$USER_INFO"
 else
   IFS='|' read USERID USERNAME GAMESPLAYED <<< "$USER_INFO"
   BESTGAME=$($PSQL "SELECT MIN(guesses_amount) FROM games WHERE player_id=$USERID")
-  echo -e "\nWelcome back, $NAME! You have played $GAMESPLAYED games, and your best game took $BESTGAME guesses."
+  if [[ -z $BESTGAME ]]
+  then
+    BESTGAME=0
+  fi
+  echo "Welcome back, $USERNAME! You have played $GAMESPLAYED games, and your best game took $BESTGAME guesses."
 fi
 
 echo "Guess the secret number between 1 and 1000:"
@@ -32,12 +38,8 @@ while [[ $GUESS != $NUMBER ]]
 do
   if [[ $GUESS -gt $NUMBER ]]
   then
-    echo "Your Guess: $GUESS"
-    echo "Hint: it's $NUMBER"
     echo -e "\nIt's lower than that, guess again:"
   else
-    echo "Your Guess: $GUESS"
-    echo "Hint: it's $NUMBER"
     echo -e "\nIt's higher than that, guess again:"
   fi
 
