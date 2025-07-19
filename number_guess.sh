@@ -19,3 +19,28 @@ else
   BESTGAME=$($PSQL "SELECT MIN(guesses_amount) FROM games WHERE player_id=$USERID")
   echo "Welcome back, $NAME! You have played $GAMESPLAYED games, and your best game took $BESTGAME guesses."
 fi
+
+echo "Guess the secret number between 1 and 1000:"
+read GUESS
+
+while [[ ! $GUESS =~ ^[0-9]+$ ]]
+do
+  echo "That is not an integer, guess again:"
+  read GUESS
+done
+
+while [[ $GUESS != $NUMBER ]]
+do
+  ((TRIES++))
+  if [[ $GUESS > $NUMBER ]]
+  then
+    echo "It's higher than that, guess again:"
+    read GUESS
+  else
+    echo "It's lower than that, guess again:"
+    read GUESS
+  fi
+done
+
+echo "You guessed it in $TRIES tries. The secret number was $NUMBER. Nice job!"
+
