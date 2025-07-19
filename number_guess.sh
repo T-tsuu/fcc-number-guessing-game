@@ -2,13 +2,12 @@
 
 PSQL="psql --username=freecodecamp --dbname=number_guess -t --no-align -c"
 
-TRIES=0
 NUMBER=$(( RANDOM % 1000 + 1 ))
 
 echo "Enter your username:"
 read NAME
 
-USER_INFO=$($PSQL "SELECT * FROM users WHERE username='$NAME'")
+USER_INFO=$($PSQL "SELECT user_id, username, games_played FROM users WHERE username='$NAME'")
 
 if [[ -z $USER_INFO ]]
 then
@@ -17,30 +16,41 @@ then
 else
   IFS='|' read USERID USERNAME GAMESPLAYED <<< "$USER_INFO"
   BESTGAME=$($PSQL "SELECT MIN(guesses_amount) FROM games WHERE player_id=$USERID")
-  echo "Welcome back, $NAME! You have played $GAMESPLAYED games, and your best game took $BESTGAME guesses."
+  echo -e "\nWelcome back, $NAME! You have played $GAMESPLAYED games, and your best game took $BESTGAME guesses."
 fi
 
 echo "Guess the secret number between 1 and 1000:"
 read GUESS
-
 while [[ ! $GUESS =~ ^[0-9]+$ ]]
 do
   echo "That is not an integer, guess again:"
   read GUESS
 done
+TRIES=1
 
 while [[ $GUESS != $NUMBER ]]
 do
-  ((TRIES++))
-  if [[ $GUESS > $NUMBER ]]
+  if [[ $GUESS -gt $NUMBER ]]
   then
-    echo "It's higher than that, guess again:"
-    read GUESS
+    echo "Your Guess: $GUESS"
+    echo "Hint: it's $NUMBER"
+    echo -e "\nIt's lower than that, guess again:"
   else
-    echo "It's lower than that, guess again:"
-    read GUESS
+    echo "Your Guess: $GUESS"
+    echo "Hint: it's $NUMBER"
+    echo -e "\nIt's higher than that, guess again:"
   fi
+
+  read GUESS
+  while [[ ! $GUESS =~ ^[0-9]+$ ]]
+  do
+    echo "That is not an integer, guess again:"
+    read GUESS
+  done
+  ((TRIES++))
 done
 
-echo "You guessed it in $TRIES tries. The secret number was $NUMBER. Nice job!"
 
+INSERT_GAME=$($PSQL "INSERT INTO games(player_id, guesses_amount) VALUES($USERID, $TRIES)")
+UPDATE_USER=$($PSQL "UPDATE users SET games_played = games_played + 1 WHERE user_id=$USERID")
+echo "You guessed it in $TRIES tries. The secret number was $NUMBER. Nice job!"
